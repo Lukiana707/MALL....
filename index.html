@@ -1,0 +1,318 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title> Mall </title>
+<style>
+  body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background-color: #fff6e5;
+  }
+  #game-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 20px;
+  }
+  .hidden { display: none; }
+  .btn {
+    padding: 10px 15px;
+    margin: 6px;
+    font-size: 15px;
+    border-radius: 8px;
+    border: none;
+    cursor: pointer;
+    background-color: #ffd580;
+  }
+  .btn:hover { background-color: #ffcb69; }
+  .character-btn { background-color: #ffb347; }
+  .nav-btn { background-color: #87ceeb; }
+  .shop-btn { background-color: #d1a3ff; }
+  .action-btn { background-color: #90ee90; }
+  .scene {
+    margin-top: 20px;
+    padding: 20px;
+    border: 2px dashed #333;
+    width: 90%;
+    max-width: 550px;
+    text-align: center;
+    background-color: #fff8dc;
+    border-radius: 10px;
+  }
+  #search-input {
+    width: 80%;
+    padding: 8px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+  }
+  .emoji-grid {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+  }
+  .emoji-grid button {
+    margin: 5px;
+    min-width: 90px;
+  }
+  #calc-input {
+    width: 70%;
+    padding: 5px;
+    margin: 5px 0;
+  }
+</style>
+</head>
+<body>
+<div id="game-screen">
+
+  <h1>Choose your character</h1>
+  <button class="btn character-btn" onclick="selectCharacter('Chef 🍳')">Chef 🍳</button>
+  <button class="btn character-btn" onclick="selectCharacter('Baker 🧁')">Baker 🧁</button>
+  <button class="btn character-btn" onclick="selectCharacter('Griller 🍖')">Griller 🍖</button>
+
+  <div id="mall-scene" class="scene hidden">
+    <h2>Welcome to the Mall!</h2>
+    <p>You are <span id="chosen-character"></span>. 💰 Money: $<span id="money">50</span></p>
+    <button class="btn nav-btn" onclick="showMap()">Open Map</button>
+  </div>
+
+  <div id="map-scene" class="scene hidden">
+    <h2>🗺️ Where do you want to go?</h2>
+    <button class="btn shop-btn" onclick="goTo('Food Stand 🥕')">Food Stand 🥕</button>
+    <button class="btn shop-btn" onclick="goTo('7 Up 🥤')">7 Up 🥤</button>
+    <button class="btn shop-btn" onclick="goTo('Carsup 🚗')">Carsup 🚗</button>
+    <button class="btn shop-btn" onclick="goTo('Dounting 🍩')">Dounting 🍩</button>
+    <button class="btn shop-btn" onclick="goTo('Bank 🏦')">Bank 🏦</button>
+    <button class="btn shop-btn" onclick="goTo('Cooking Station 🧑‍🍳')">Cooking Station 🧑‍🍳</button>
+    <button class="btn shop-btn" onclick="goTo('Fridge ❄️')">Fridge ❄️</button>
+    <button class="btn shop-btn" onclick="goTo('Your Shop 🏪')">Your Shop 🏪</button>
+    <button class="btn shop-btn" onclick="goTo('Phone 📱')">Phone 📱</button>
+    <button class="btn nav-btn" onclick="backToMall()">Back to Mall</button>
+  </div>
+
+  <div id="location-scene" class="scene hidden">
+    <h2 id="location-title"></h2>
+    <div id="location-content"></div>
+    <button class="btn nav-btn" onclick="showMap()">Back to Map</button>
+  </div>
+
+</div>
+
+<script>
+let money = 50;
+let inventory = [];
+let fridge = [];
+
+// === Utility ===
+function updateMoneyDisplay() {
+  document.getElementById('money').textContent = money;
+}
+
+// === Character Select ===
+function selectCharacter(name) {
+  document.querySelector('h1').classList.add('hidden');
+  document.querySelectorAll('.character-btn').forEach(b => b.classList.add('hidden'));
+  document.getElementById('mall-scene').classList.remove('hidden');
+  document.getElementById('chosen-character').textContent = name;
+}
+
+// === Navigation ===
+function showMap() {
+  document.getElementById('mall-scene').classList.add('hidden');
+  document.getElementById('location-scene').classList.add('hidden');
+  document.getElementById('map-scene').classList.remove('hidden');
+}
+function backToMall() {
+  document.getElementById('map-scene').classList.add('hidden');
+  document.getElementById('mall-scene').classList.remove('hidden');
+}
+
+// === Food List ===
+const allFoods = [
+  "Apple 🍎","Banana 🍌","Carrot 🥕","Tomato 🍅","Potato 🥔","Cucumber 🥒","Corn 🌽",
+  "Broccoli 🥦","Lettuce 🥬","Onion 🧅","Garlic 🧄","Pepper 🌶️","Mushroom 🍄",
+  "Bread 🍞","Croissant 🥐","Baguette 🥖","Pretzel 🥨","Cheese 🧀","Egg 🥚","Butter 🧈",
+  "Flour 🌾","Milk 🥛","Steak 🥩","Fish 🐟","Shrimp 🍤","Rice 🍚","Noodles 🍜",
+  "Pizza 🍕","Burger 🍔","Fries 🍟","Hotdog 🌭","Sandwich 🥪","Taco 🌮","Burrito 🌯",
+  "Salad 🥗","Popcorn 🍿","Ice Cream 🍦","Cake 🎂","Cookie 🍪","Donut 🍩","Pie 🥧",
+  "Chocolate 🍫","Candy 🍬","Lollipop 🍭","Watermelon 🍉","Grapes 🍇","Strawberry 🍓",
+  "Pineapple 🍍","Peach 🍑","Cherry 🍒","Mango 🥭","Blueberry 🫐","Coconut 🥥","Avocado 🥑"
+];
+
+// === Map Locations ===
+function goTo(location) {
+  document.getElementById('map-scene').classList.add('hidden');
+  document.getElementById('location-scene').classList.remove('hidden');
+  document.getElementById('location-title').textContent = location;
+  const content = document.getElementById('location-content');
+  content.innerHTML = '';
+
+  if (location.includes('Food Stand')) {
+    content.innerHTML = `
+      <p>Search for foods to buy:</p>
+      <input id="search-input" type="text" placeholder="Search..." oninput="filterFoodList()" />
+      <div id="food-list" class="emoji-grid"></div>
+    `;
+    showFoodList(allFoods);
+  } else if (location.includes('7 Up')) {
+    content.innerHTML = `
+      <p>Welcome to 7 Up! 🥤 Buy drinks:</p>
+      <button class="btn action-btn" onclick="buyItem('7 Up 🥤',5)">7 Up 🥤 ($5)</button>
+      <button class="btn action-btn" onclick="buyItem('Water 💧',2)">Water 💧 ($2)</button>
+      <button class="btn action-btn" onclick="buyItem('Juice 🧃',5)">Juice 🧃 ($5)</button>
+    `;
+  } else if (location.includes('Carsup')) {
+    content.innerHTML = `
+      <p>Car store 🚗</p>
+      <button class="btn action-btn" onclick="buyItem('Mini Car 🚗',20)">Mini Car 🚗 ($20)</button>
+      <button class="btn action-btn" onclick="buyItem('Race Car 🏎️',30)">Race Car 🏎️ ($30)</button>
+    `;
+  } else if (location.includes('Dounting')) {
+    content.innerHTML = `
+      <p>Buy donuts & baking ingredients 🍩:</p>
+      <button class="btn action-btn" onclick="buyItem('Donut 🍩',5)">Donut 🍩 ($5)</button>
+      <button class="btn action-btn" onclick="buyItem('Sugar 🍬',5)">Sugar 🍬 ($5)</button>
+      <button class="btn action-btn" onclick="buyItem('Flour 🌾',5)">Flour 🌾 ($5)</button>
+      <button class="btn action-btn" onclick="buyItem('Egg 🥚',5)">Egg 🥚 ($5)</button>
+      <button class="btn action-btn" onclick="buyItem('Butter 🧈',5)">Butter 🧈 ($5)</button>
+    `;
+  } else if (location.includes('Bank')) {
+    content.innerHTML = `
+      <p>💰 Balance: $${money}</p>
+      <button class="btn action-btn" onclick="earnMoney(10)">Deposit $10</button>
+      <button class="btn action-btn" onclick="earnMoney(20)">Withdraw $20</button>
+    `;
+  } else if (location.includes('Cooking Station')) {
+    content.innerHTML = `
+      <p>Cook or bake your food:</p>
+      <button class="btn action-btn" onclick="craftItem('Milkshake 🍹')">Make Milkshake 🍹</button>
+      <button class="btn action-btn" onclick="craftItem('Soup 🍲')">Make Soup 🍲</button>
+      <button class="btn action-btn" onclick="craftItem('Cake 🎂')">Bake Cake 🎂</button>
+    `;
+  } else if (location.includes('Fridge')) {
+    content.innerHTML = `<p>Store or take out food from your fridge ❄️</p>`;
+    if (inventory.length > 0) {
+      content.innerHTML += `<h3>Your Inventory:</h3>`;
+      inventory.forEach((item, i) => {
+        if (["Milkshake 🍹","Soup 🍲","Cake 🎂"].includes(item)) {
+          content.innerHTML += `<button class="btn action-btn" onclick="storeInFridge(${i})">Store ${item} in Fridge</button>`;
+        }
+      });
+    }
+    if (fridge.length > 0) {
+      content.innerHTML += `<h3>Inside Fridge:</h3>`;
+      fridge.forEach((item, i) => {
+        content.innerHTML += `<button class="btn action-btn" onclick="takeFromFridge(${i})">Take out ${item}</button>`;
+      });
+    }
+  } else if (location.includes('Your Shop')) {
+    content.innerHTML = `<p>Sell your crafted food 🏪</p>`;
+    inventory.forEach((item, i) => {
+      if (["Milkshake 🍹","Soup 🍲","Cake 🎂"].includes(item)) {
+        content.innerHTML += `<button class="btn action-btn" onclick="sellItem(${i})">Sell ${item}</button>`;
+      }
+    });
+  } else if (location.includes('Phone')) {
+    content.innerHTML = `
+      <h3>📱 Phone</h3>
+      <p>Current Time: <span id="phone-time"></span></p>
+      <button class="btn action-btn" onclick="updateTime()">Refresh Time</button>
+      <hr>
+      <h4>Calculator 🧮</h4>
+      <input id="calc-input" type="text" placeholder="Enter expression"/>
+      <button class="btn action-btn" onclick="calculate()">Calculate</button>
+      <p>Result: <span id="calc-result"></span></p>
+    `;
+    updateTime();
+  }
+}
+
+// === Food List & Search ===
+function showFoodList(list) {
+  const container = document.getElementById('food-list');
+  container.innerHTML = '';
+  list.forEach(food => {
+    container.innerHTML += `<button class="btn action-btn" onclick="buyItem('${food}',5)">${food} ($5)</button>`;
+  });
+}
+function filterFoodList() {
+  const q = document.getElementById('search-input').value.toLowerCase();
+  const filtered = allFoods.filter(f => f.toLowerCase().includes(q));
+  showFoodList(filtered);
+}
+
+// === Game Logic ===
+function buyItem(item, cost) {
+  if (money >= cost) {
+    money -= cost;
+    inventory.push(item);
+    updateMoneyDisplay();
+    alert(`${item} added to inventory!`);
+  } else alert("Not enough money!");
+}
+function earnMoney(amount) {
+  money += amount;
+  updateMoneyDisplay();
+  alert(`You earned $${amount}!`);
+}
+function craftItem(item) {
+  const recipes = {
+    'Milkshake 🍹': ['Milk 🥛','Banana 🍌','Apple 🍎'],
+    'Soup 🍲': ['Carrot 🥕','Tomato 🍅','Potato 🥔'],
+    'Cake 🎂': ['Flour 🌾','Egg 🥚','Butter 🧈','Sugar 🍬']
+  };
+  const need = recipes[item] || [];
+  if (need.every(i => inventory.includes(i))) {
+    need.forEach(i => inventory.splice(inventory.indexOf(i),1));
+    inventory.push(item);
+    alert(`You made ${item}!`);
+  } else {
+    alert(`You need: ${need.join(', ')}`);
+  }
+}
+function sellItem(i) {
+  const item = inventory[i];
+  const price = item.includes('Cake') ? 30 : item.includes('Soup') ? 15 : 10;
+  money += price;
+  inventory.splice(i,1);
+  updateMoneyDisplay();
+  alert(`Sold ${item} for $${price}!`);
+  goTo('Your Shop 🏪');
+}
+
+// === Fridge Logic ===
+function storeInFridge(i) {
+  const item = inventory[i];
+  fridge.push(item);
+  inventory.splice(i,1);
+  alert(`${item} stored in the fridge! ❄️`);
+  goTo('Fridge ❄️');
+}
+function takeFromFridge(i) {
+  const item = fridge[i];
+  inventory.push(item);
+  fridge.splice(i,1);
+  alert(`${item} taken out of the fridge! 🍽️`);
+  goTo('Fridge ❄️');
+}
+
+// === Phone Functions ===
+function updateTime() {
+  const now = new Date();
+  document.getElementById('phone-time').textContent = now.toLocaleTimeString();
+}
+
+function calculate() {
+  const input = document.getElementById('calc-input').value;
+  try {
+    const result = eval(input);
+    document.getElementById('calc-result').textContent = result;
+  } catch {
+    document.getElementById('calc-result').textContent = 'Error!';
+  }
+}
+</script>
+</body>
+</html>
